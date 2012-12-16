@@ -1,8 +1,23 @@
-package scribble
+package scribbleApplet
 
 import swing._
 import swing.event._
 import java.awt.Color._
+
+class ScribbleApplet extends Applet {
+  object ui extends UI {
+
+    val drawingPanel = new ScribblePanel
+
+    contents = new BorderPanel {
+      add(new Toolbar(actions = Action("Clear") { drawingPanel.clear }), BorderPanel.Position.North)
+      add(drawingPanel, BorderPanel.Position.Center)
+      add(new ColorSelector(black, red, blue, green, pink, orange, yellow)
+      (drawingPanel.setColor), BorderPanel.Position.South)
+    }
+    def init():Unit = {}
+  }
+}
 
 class ScribblePanel extends Panel {
   background = white
@@ -52,24 +67,6 @@ class ScribblePanel extends Panel {
   }
 }
 
-object Scribble extends SimpleSwingApplication {
-  def top = new MainFrame {
-    title = "ScribbleApplet"
-    preferredSize = new Dimension(800, 600)
-    
-    val drawingPanel = new ScribblePanel
-    
-    contents = new BorderPanel {
-      add(new Toolbar(actions = Action("Clear") { drawingPanel.clear }),
-        BorderPanel.Position.North)
-      add(drawingPanel, BorderPanel.Position.Center)
-      add(new ColorSelector(black, red, blue, green, pink, orange, yellow)
-      					   (drawingPanel.setColor), 
-          BorderPanel.Position.South)
-    }
-  }
-}
-
 //First attempt at a Scala wrapper for JToolBar - doesn't seem to exist in the library
 class Toolbar(actions: Action* ) extends Component with Orientable.Wrapper {
   import javax.swing.JToolBar
@@ -87,8 +84,8 @@ class ColorIcon(color: Color) extends Component with javax.swing.Icon {
     def getIconWidth = 16
     
     def paintIcon(c: java.awt.Component, g: java.awt.Graphics, x: Int, y: Int) {
-      g.setColor(color);
-      g.fillRect(x, y, 16, 16);
+      g.setColor(color)
+      g.fillRect(x, y, 16, 16)
     }
   }
 
