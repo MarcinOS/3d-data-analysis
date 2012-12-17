@@ -54,7 +54,7 @@ class ScribblePanel extends Panel {
 
 object Scribble extends SimpleSwingApplication {
   def top = new MainFrame {
-    title = "ScribbleApplet"
+    title = "Scribble"
     preferredSize = new Dimension(800, 600)
     
     val drawingPanel = new ScribblePanel
