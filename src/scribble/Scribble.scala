@@ -50,7 +50,9 @@ class ScribblePanel extends Panel {
   }
 
   def addPath(path: PathEntry) {
+    val currentColor = paths.head.color
     paths ::= path
+    paths = PathEntry(new Path, currentColor) :: paths
     SwingUtilities.invokeLater(new Runnable {
       def run() {
         peer.repaint()
@@ -59,11 +61,13 @@ class ScribblePanel extends Panel {
   }
 
   def setPaths(newPaths: List[PathEntry]) {
+    val currentColor = paths.head.color
     if (newPaths.isEmpty) {
       paths = PathEntry(new Path, black) :: Nil
     } else {
       paths = PathEntry(new Path, black) :: newPaths
     }
+    paths = PathEntry(new Path, currentColor) :: paths
     SwingUtilities.invokeLater(new Runnable {
       def run() {
         peer.repaint()
@@ -79,6 +83,13 @@ class ScribblePanel extends Panel {
   def clear {
     val currentColor = paths.head.color
     paths = PathEntry(new Path, currentColor) :: Nil
+
+    SwingUtilities.invokeLater(new Runnable {
+      def run() {
+        peer.repaint()
+      }
+    })
+
     Scribble.sComm.clear()
   }
 

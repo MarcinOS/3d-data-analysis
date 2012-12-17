@@ -31,18 +31,18 @@ class ServerApp extends Bootable {
 }
 
 class ServerActor extends Actor {
-  var clients: List[ActorRef] = List.empty
+  //var clients: List[ActorRef] = List.empty
   var pathMap: Map[ActorRef, List[PathEntry]] = Map.empty
 
   def receive = {
     case Register(name) ⇒ {
       sendHello(sender)
-      clients = sender :: clients
+      //clients = sender :: clients
       pathMap = pathMap.updated(sender, List.empty[PathEntry])
     }
 
     case AddPath(path) ⇒ {
-      clients.foreach {
+      pathMap.keys.foreach {
         _ ! path
       }
       if (pathMap.contains(sender)) {
@@ -55,21 +55,22 @@ class ServerActor extends Actor {
     case Clear => {
       println("Got Clear from " + sender)
       clearClientPaths(sender)
+      // TODO Revisit for an efficient way of doing this
       // Send a hello to all clients
-      clients.foreach {
+      pathMap.keys.foreach {
         sendHello(_)
       }
     }
 
     case Bye => {
       println("Got bye from " + sender)
-      clearClientPaths(sender)
-      clients = clients.filterNot(_ == sender)
+      pathMap = pathMap - sender
+      //clients = clients.filterNot(_ == sender)
     }
   }
 
   def clearClientPaths(client: ActorRef) {
-    pathMap = pathMap - client
+    pathMap = pathMap.updated(client, List.empty[PathEntry])
   }
 
   def sendHello(client: ActorRef) {

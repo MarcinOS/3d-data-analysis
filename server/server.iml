@@ -16,10 +16,9 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="common" />
-    <orderEntry type="library" name="akka-actor-2.1.0" level="application" />
     <orderEntry type="library" name="scala-compiler-2.10.0" level="application" />
-    <orderEntry type="library" name="scala-swing-2.10.0" level="application" />
     <orderEntry type="library" scope="RUNTIME" name="scala-library-2.10.0" level="application" />
+    <orderEntry type="library" name="akka-actor-2.1.0" level="application" />
   </component>
 </module>
 

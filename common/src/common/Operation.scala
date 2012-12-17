@@ -16,6 +16,6 @@ case class AddPath(path: PathEntry) extends Operation
 
 case class Hello(initialPaths: List[PathEntry]) extends Operation
 
-object Bye extends Operation
+case object Bye extends Operation
 
-object Clear extends Operation
+case object Clear extends Operation
