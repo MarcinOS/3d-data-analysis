@@ -8,9 +8,22 @@ import akka.actor.{ActorRef, Props, Actor, ActorSystem}
 import com.typesafe.config.ConfigFactory
 import javax.swing.SwingUtilities
 import common._
+import common.ScribbleStroke._
+import ui.{WideComboBox, MigPanel}
+import java.awt.{Color, BasicStroke}
+import swing.Color
+import swing.Graphics2D
 
 class ScribblePanel extends Panel {
   background = white
+
+  var currentColor: Color = Color.black
+  var currentStroke: ScribbleStroke = DEFAULT_STROKE
+
+  def init() {
+    currentColor = Color.black
+    currentStroke = DEFAULT_STROKE
+  }
 
   //Paths are maintained as a list. When switching to a new color,
   //a new path is added to the list
@@ -22,11 +35,11 @@ class ScribblePanel extends Panel {
   reactions += {
     case e: MousePressed => moveTo(e.point)
     case e: MouseDragged => lineTo(e.point)
-    case e: MouseReleased => sendPathToServer
-    case KeyTyped(_, 'c', _, _) => clear
+    case e: MouseReleased => sendPathToServer()
+    case KeyTyped(_, 'c', _, _) => clear()
   }
 
-  def sendPathToServer {
+  def sendPathToServer() {
     (paths: @unchecked) match {
       case pathEntry :: _ => Scribble.sComm.sendPathToServer(pathEntry)
     }
@@ -44,15 +57,16 @@ class ScribblePanel extends Panel {
     }
   }
 
-  def drawPath(g: Graphics2D, p: PathEntry) = {
+  def drawPath(g: Graphics2D, p: PathEntry) {
+    g.setStroke(p.stroke)
     g.setColor(p.color)
     g.draw(p.path)
   }
 
   def addPath(path: PathEntry) {
-    val currentColor = paths.head.color
+    //val currentColor = paths.head.color
     paths ::= path
-    paths = PathEntry(new Path, currentColor) :: paths
+    paths = PathEntry(new Path, currentColor, currentStroke) :: paths
     SwingUtilities.invokeLater(new Runnable {
       def run() {
         peer.repaint()
@@ -61,13 +75,15 @@ class ScribblePanel extends Panel {
   }
 
   def setPaths(newPaths: List[PathEntry]) {
-    val currentColor = paths.head.color
+    // TODO synchronization of changes
+    init()
+
     if (newPaths.isEmpty) {
-      paths = PathEntry(new Path, black) :: Nil
+      paths = PathEntry(new Path, currentColor, currentStroke) :: Nil
     } else {
-      paths = PathEntry(new Path, black) :: newPaths
+      paths = PathEntry(new Path, currentColor, currentStroke) :: newPaths
     }
-    paths = PathEntry(new Path, currentColor) :: paths
+    paths = PathEntry(new Path, currentColor, currentStroke) :: paths
     SwingUtilities.invokeLater(new Runnable {
       def run() {
         peer.repaint()
@@ -75,14 +91,14 @@ class ScribblePanel extends Panel {
     })
   }
 
-  override def paintComponent(g: Graphics2D) = {
+  override def paintComponent(g: Graphics2D) {
     super.paintComponent(g)
     for (path <- paths.reverse) drawPath(g, path)
   }
 
-  def clear {
-    val currentColor = paths.head.color
-    paths = PathEntry(new Path, currentColor) :: Nil
+  def clear() {
+    //val currentColor = paths.head.color
+    paths = PathEntry(new Path, currentColor, currentStroke) :: Nil
 
     SwingUtilities.invokeLater(new Runnable {
       def run() {
@@ -94,7 +110,14 @@ class ScribblePanel extends Panel {
   }
 
   def setColor(c: java.awt.Color) {
-    paths = PathEntry(new Path, c) :: paths
+    currentColor = c
+    paths = PathEntry(new Path, c, currentStroke) :: paths
+  }
+
+  def setStroke(stroke: BasicStroke) {
+    //val currentColor = paths.head.color
+    currentStroke = stroke
+    paths = PathEntry(new Path, currentColor, stroke) :: paths
   }
 }
 
@@ -105,7 +128,8 @@ class ScribbleCommunicator extends Bootable {
   val remoteActor = system.actorFor("akka://ServerApplication@127.0.0.1:2552/user/server")
 
   def register(name: String) {
-    actor !(remoteActor, Register(name))
+    if (actor.isTerminated)
+      actor !(remoteActor, Register(name))
   }
 
   def sendPathToServer(path: PathEntry) {
@@ -134,6 +158,9 @@ class ScribbleActor extends Actor {
 }
 
 class ScribbleFrame extends MainFrame {
+
+  import common.ScribbleStroke._
+
   title = "Scribble"
   preferredSize = new Dimension(800, 600)
 
@@ -141,13 +168,23 @@ class ScribbleFrame extends MainFrame {
 
   contents = new BorderPanel {
     add(new Toolbar(actions = Action("Clear") {
-      drawingPanel.clear
-    }),
-      BorderPanel.Position.North)
+      drawingPanel.clear()
+    }), BorderPanel.Position.North)
     add(drawingPanel, BorderPanel.Position.Center)
-    add(new ColorSelector(black, red, blue, green, pink, orange, yellow)
-    (drawingPanel.setColor),
-      BorderPanel.Position.South)
+    add(new MigPanel("wrap 2", "center", "center") {
+      contents += new ColorSelector(black, red, blue, green, pink, orange, yellow)(drawingPanel.setColor)
+      contents +=(new StrokeSelector(getPossibleStrokes)(drawingPanel.setStroke), "width 10:80:80")
+    }, BorderPanel.Position.South
+    )
+  }
+
+  def getPossibleStrokes: Seq[BasicStroke] = {
+    List(
+      DEFAULT_STROKE,
+      new BasicStroke(5.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, null, 0.0f),
+      new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, Array(5.0f, 5.0f), 0.0f),
+      new BasicStroke(5.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, Array(5.0f, 5.0f), 0.0f)
+    )
   }
 
   def addPath(path: PathEntry) {
@@ -194,8 +231,8 @@ class ColorIcon(color: Color) extends Component with javax.swing.Icon {
   def getIconWidth = 16
 
   def paintIcon(c: java.awt.Component, g: java.awt.Graphics, x: Int, y: Int) {
-    g.setColor(color);
-    g.fillRect(x, y, 16, 16);
+    g.setColor(color)
+    g.fillRect(x, y, 16, 16)
   }
 }
 
@@ -213,6 +250,48 @@ class ColorButton(color: Color)(cb: Color => Unit) extends AbstractButton with P
 
     icon = new ColorIcon(color)
   }
+}
+
+class StrokeCombo(strokes: Seq[BasicStroke])(ss: BasicStroke => Unit) extends WideComboBox[BasicStroke](strokes) with Publisher {
+  listenTo(selection)
+  val dhis = this
+  reactions += {
+    case SelectionChanged(`dhis`) => {
+      this.selection.item match {
+        case bs: BasicStroke => ss(ScribbleStroke(bs))
+        case _ => println("Non basic stroke")
+      }
+    }
+  }
+
+  renderer = new ListView.Renderer[BasicStroke] {
+    def componentFor(list: ListView[_], isSelected: Boolean, hasFocus: Boolean, s: BasicStroke, index: Int): Component = {
+      new scala.swing.Panel {
+        peer.setPreferredSize(new Dimension(100, 20))
+        peer.setOpaque(true)
+
+        override def paintComponent(g: Graphics2D) {
+          super.paintComponent(g)
+          var strokeColor = Color.BLACK
+          val w = list.peer.getPreferredSize.getWidth.toInt
+          val h = peer.getPreferredSize.getHeight.toInt
+          if (isSelected) {
+            g.setColor(list.peer.getSelectionBackground)
+            strokeColor = Color.WHITE
+            g.fillRect(0, 0, w, h)
+          }
+
+          g.setColor(strokeColor)
+          g.setStroke(s)
+          g.drawLine(0, h / 2, w, h / 2)
+        }
+      }
+    }
+  }
+}
+
+class StrokeSelector(strokes: Seq[BasicStroke])(ss: BasicStroke => Unit) extends BorderPanel {
+  add(new StrokeCombo(strokes)(ss), BorderPanel.Position.Center)
 }
 
 // "Toolbar" for color selection

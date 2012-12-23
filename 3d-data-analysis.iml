@@ -20,6 +20,7 @@
     <orderEntry type="library" name="scala-compiler-2.10.0" level="application" />
     <orderEntry type="library" name="scala-swing-2.10.0" level="application" />
     <orderEntry type="library" scope="RUNTIME" name="scala-library-2.10.0" level="application" />
+    <orderEntry type="library" name="miglayout-4.0-swing" level="project" />
   </component>
 </module>
 
