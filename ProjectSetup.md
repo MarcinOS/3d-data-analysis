@@ -1,6 +1,6 @@
 Project setup
 =============
-* Create two folders locally. We'll call them project_folder and lib_folder.
+* Create a folder locally. We'll call it lib_folder.
 * Download akka 2.1.0 zip from <http://typesafe.com/stack/downloads/akka> and expand it to <lib_folder>. After this, you should end up with a folder structure like <lib_folder>/akka-2.1.0
 * Likewise, download Scala from <http://www.scala-lang.org/downloads> and place it under <lib_folder>
 * Download and install IntelliJIdea
